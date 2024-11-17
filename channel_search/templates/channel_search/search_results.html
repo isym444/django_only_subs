@@ -1,0 +1,10 @@
+{% if search_results %}
+    {% for result in search_results %}
+        <div class="card" id="result-{{ result.id }}">
+            <h3>{{ result.name }}</h3>
+            <p>Subscribers: {{ result.subscriber_count }}</p>
+            <p>{{ result.description }}</p>
+            <button onclick="addChannel('{{ result.id }}')">Add Channel</button>
+        </div>
+    {% endfor %}
+{% endif %} 

@@ -1,0 +1,60 @@
+function deleteSearch(searchId) {
+    fetch(`/channel-search/delete/${searchId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken(), // Make sure you have this function defined
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Remove the element from the DOM
+            const elementToRemove = document.querySelector(`[data-search-id="${searchId}"]`);
+            if (elementToRemove) {
+                elementToRemove.remove();
+            }
+        } else {
+            alert('Error deleting search: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error deleting search');
+    });
+}
+
+function updateAllChannels() {
+    $.ajax({
+        url: '{% url "update_all_channels" %}',
+        type: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        success: function(response) {
+            if (response.status === 'success') {
+                response.updated_channels.forEach(function(channelId) {
+                    $(`#channel-${channelId}`).addClass('has-new-video');
+                });
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error updating channels:', error);
+        }
+    });
+}
+
+$(document).on('click', '.channel-box.has-new-video', function() {
+    const channelId = $(this).data('channel-id');
+    $.ajax({
+        url: `/channel/mark-viewed/${channelId}/`,
+        type: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        success: function(response) {
+            if (response.status === 'success') {
+                $(`#channel-${channelId}`).removeClass('has-new-video');
+            }
+        }
+    });
+}); 
