@@ -23,7 +23,7 @@ def search_channel(request):
                     metadata = channel.metadata
                     
                     search_results.append({
-                        'id': channel_id,
+                        'channel_id': channel_id,
                         'name': metadata['name'],
                         'subscriber_count': metadata['subscribers'],
                         'description': metadata.get('description', 'No description available')[:200] + '...'
@@ -56,6 +56,9 @@ def search_channel(request):
 def add_channel(request):
     if request.method == 'POST':
         channel_id = request.POST.get('channel_id')
+        print(f"Received POST data: {request.POST}")  # Debug all POST data
+        print(f"Received channel_id: {channel_id}")   # Debug channel_id
+        
         if not channel_id:
             return JsonResponse({'status': 'error', 'message': 'No channel ID provided'})
             
@@ -82,12 +85,14 @@ def add_channel(request):
             # Save to database with fallback values
             search_obj = ChannelSearch.objects.create(
                 channel_name=channel_data.get('name', 'Unknown Channel'),
-                channel_id=channel_data.get('id'),
+                channel_id=channel_id,
                 video_id=latest_video or '',
                 video_title=video_data.get('title', 'Video information unavailable'),
                 video_views=str(video_data.get('views', 'N/A')),
                 upload_date=str(video_data.get('upload_date', 'N/A'))
             )
+            
+            print(f"About to save channel_id: {channel_id}")
             
             return JsonResponse({'status': 'success'})
             
