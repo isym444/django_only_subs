@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+    {% load custom_filters %}
 <head>
     <title>YouTube Channel Search</title>
     <style>
@@ -106,7 +107,15 @@
             cursor: pointer;
         }
         .iframe-wrapper iframe {
-            pointer-events: none;  /* This prevents iframe from capturing clicks */
+            pointer-events: none;
+        }
+        .iframe-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
         }
     </style>
 </head>
@@ -152,6 +161,7 @@
                 <div class="video-card {% if search.has_new_video %}has-new-video{% endif %}" id="card-{{ search.id }}">
                     <h3>{{ search.channel_name }}</h3>
                     <div class="iframe-wrapper" onclick="handleIframeClick(this)">
+                        <div class="iframe-overlay"></div>
                         <iframe 
                             src="https://www.youtube.com/embed/{{ search.video_id }}" 
                             frameborder="0" 
@@ -160,7 +170,7 @@
                     </div>
                     <h4>{{ search.video_title }}</h4>
                     <p>Views: {{ search.video_views }}</p>
-                    <p>Published: {{ search.upload_date }}</p>
+                    <p>Published: {{ search.upload_date|date:"d-m-Y" }} ({{ search.upload_date|days_ago }})</p>
                     <button class="delete-btn" onclick="deleteSearch({{ search.id }})">Delete</button>
                 </div>
             {% endfor %}
@@ -168,6 +178,10 @@
     </div>
 
     <script>
+        function testFunc(){
+            console.log("THE QUICK BROWN FOX");
+        }
+
         function deleteSearch(searchId) {
             if (confirm('Are you sure you want to delete this search?')) {
                 fetch(`/delete/${searchId}/`, {
@@ -259,35 +273,18 @@
             document.getElementById('searchForm').reset();
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add click handlers for iframes within new video cards
-            document.querySelectorAll('.video-card.has-new-video iframe').forEach(iframe => {
-                iframe.addEventListener('click', function() {
-                    const card = this.closest('.video-card');
-                    const channelId = card.id.replace('card-', '');
-                    
-                    fetch(`/mark-viewed/${channelId}/`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            card.classList.remove('has-new-video');
-                        }
-                    });
-                });
-            });
-        });
-
-        // Add this new function to handle iframe interactions
         function handleIframeClick(wrapper) {
+            console.log("HELLO WORLD!!!");
+            const iframe = wrapper.querySelector('iframe');
             const card = wrapper.closest('.video-card');
+            
+            // Get the video URL and open in new tab
+            const videoId = iframe.src.split('/').pop();
+            window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
+            
+            // Handle the "new video" marking if needed
             if (card && card.classList.contains('has-new-video')) {
                 const channelId = card.id.replace('card-', '');
-                
                 fetch(`/mark-viewed/${channelId}/`, {
                     method: 'POST',
                     headers: {
@@ -302,6 +299,37 @@
                 });
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Replace the existing iframe click handling setup with direct wrapper handling
+            document.querySelectorAll('.iframe-wrapper').forEach(wrapper => {
+                wrapper.addEventListener('click', function() {
+                    const iframe = this.querySelector('iframe');
+                    const card = this.closest('.video-card');
+                    if (card && card.classList.contains('has-new-video')) {
+                        const channelId = card.id.replace('card-', '');
+                        console.log('Marking as viewed:', channelId);
+                        
+                        fetch(`/mark-viewed/${channelId}/`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                console.log('Success - removing has-new-video class');
+                                card.classList.remove('has-new-video');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error marking as viewed:', error);
+                        });
+                    }
+                });
+            });
+        });
     </script>
 </body>
 </html> 
